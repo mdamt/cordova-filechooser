@@ -15,6 +15,7 @@ import org.json.JSONException;
 
 public class FileChooser extends CordovaPlugin {
 
+    private boolean resolvePath = false;
     private static final String TAG = "FileChooser";
     private static final String ACTION_OPEN = "open";
     private static final String ACTION_RESOLVE = "resolve";
@@ -24,6 +25,10 @@ public class FileChooser extends CordovaPlugin {
     @Override
     public boolean execute(String action, CordovaArgs args, CallbackContext callbackContext) throws JSONException {
         if (action.equals(ACTION_OPEN)) {
+            try {
+                resolvePath = args.getBoolean(0);
+            } catch (Exception e) {
+            }
             chooseFile(callbackContext);
             return true;
         } else if (action.equals(ACTION_RESOLVE)) {
@@ -95,7 +100,11 @@ public class FileChooser extends CordovaPlugin {
                 if (uri != null) {
 
                     Log.w(TAG, uri.toString());
-                    callback.success(uri.toString());
+                    if (resolvePath) {
+                        callback.success(uri.getPath());
+                    } else {
+                        callback.success(uri.toString());
+                    }
 
                 } else {
 
