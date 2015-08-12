@@ -2,8 +2,10 @@ package com.megster.cordova;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+import android.database.Cursor;
 
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CallbackContext;
@@ -15,14 +17,18 @@ public class FileChooser extends CordovaPlugin {
 
     private static final String TAG = "FileChooser";
     private static final String ACTION_OPEN = "open";
+    private static final String ACTION_RESOLVE = "resolve";
     private static final int PICK_FILE_REQUEST = 1;
     CallbackContext callback;
 
     @Override
     public boolean execute(String action, CordovaArgs args, CallbackContext callbackContext) throws JSONException {
-
         if (action.equals(ACTION_OPEN)) {
             chooseFile(callbackContext);
+            return true;
+        } else if (action.equals(ACTION_RESOLVE)) {
+            final String uri = args.getString(0);
+            resolve(uri, callbackContext);
             return true;
         }
 
@@ -45,6 +51,36 @@ public class FileChooser extends CordovaPlugin {
         pluginResult.setKeepCallback(true);
         callback = callbackContext;
         callbackContext.sendPluginResult(pluginResult);
+    }
+
+    public void resolve(final String uri, CallbackContext callbackContext) {
+        final String resolved = resolveUri(Uri.parse(uri));
+        callbackContext.success(resolved);
+    }
+
+    String resolveUri(final Uri uri) {
+        Context context = cordova.getActivity();
+        if ("content".equals(uri.getScheme())) {
+            Cursor cursor = null;
+            final String[] projection = {
+                "_data"
+            };
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    final int index = cursor.getColumnIndexOrThrow("_data");
+                    return cursor.getString(index); 
+                }
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+            return null;
+        } else if ("file".equals(uri.getScheme())) {
+            return uri.getPath();
+        }
+        return null;
     }
 
     @Override
