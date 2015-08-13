@@ -7,6 +7,7 @@ import android.content.ContentUris;
 import android.net.Uri;
 import android.util.Log;
 import android.database.Cursor;
+import android.webkit.MimeTypeMap;
 
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CallbackContext;
@@ -14,6 +15,11 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+
+import com.orleonsoft.android.simplefilechooser.Constants;
+import com.orleonsoft.android.simplefilechooser.ui.FileChooserActivity;
 
 public class FileChooser extends CordovaPlugin {
 
@@ -55,16 +61,20 @@ public class FileChooser extends CordovaPlugin {
     }
 
     public void chooseFile(CallbackContext callbackContext) {
-
-        // type and title should be configurable
+        ArrayList<String> list = new ArrayList<String>();
+        String extension = ".*";
+        if (mimeType != null) {
+            extension = "." + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        }
+        System.err.println("=-------------------------------.--"+extension);
+        list.add(extension);
 
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType(mimeType);
+        intent.setClass(cordova.getActivity(), FileChooserActivity.class);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        intent.putStringArrayListExtra(Constants.KEY_FILTER_FILES_EXTENSIONS, list);
 
-        Intent chooser = Intent.createChooser(intent, "Select File");
-        cordova.startActivityForResult(this, chooser, PICK_FILE_REQUEST);
+        cordova.startActivityForResult(this, intent, PICK_FILE_REQUEST);
 
         PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
         pluginResult.setKeepCallback(true);
@@ -117,7 +127,7 @@ public class FileChooser extends CordovaPlugin {
 
             if (resultCode == Activity.RESULT_OK) {
 
-                Uri uri = data.getData();
+                Uri uri = Uri.parse(data.getStringExtra(Constants.KEY_FILE_SELECTED));
 
                 if (uri != null) {
 
